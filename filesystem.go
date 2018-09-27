@@ -2,6 +2,7 @@ package assets
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -23,8 +24,8 @@ type FileSystem struct {
 
 func NewFileSystem(dirs map[string][]string, files map[string]*File, localPath string) *FileSystem {
 	fs := &FileSystem{
-		Dirs: dirs,
-		Files: files,
+		Dirs:      dirs,
+		Files:     files,
 		LocalPath: localPath,
 	}
 
@@ -87,4 +88,29 @@ func (f *FileSystem) readDir(p string, index int, count int) ([]os.FileInfo, err
 	}
 
 	return nil, os.ErrNotExist
+}
+
+func (f *FileSystem) OpenBinary(p string) ([]byte, error) {
+	file, err := f.Open(p)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	bin := new(bytes.Buffer)
+	io.Copy(bin, file)
+
+	return bin.Bytes(), err
+}
+
+func (f *FileSystem) OpenText(p string) string {
+	bin, err := f.OpenBinary(p)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return string(bin)
 }
